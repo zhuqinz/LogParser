@@ -1,6 +1,8 @@
 import ntpath
 import os
 import threading
+import datetime
+import time
 
 
 try:
@@ -26,8 +28,11 @@ class LogParser(threading.Thread):
         self.path = path
         self.tabControl = tabControl
         self.tab = None
+#         self.autoRefresh = autoRefresh
+        self.updateTime = StringVar()
         
         self._setup_widgets()
+#         self.displayData()
         self._read_log()
         self._build_tree()
 
@@ -46,30 +51,34 @@ class LogParser(threading.Thread):
 #         container.pack(fill='both', expand=True)
 
         self.tree = ttk.Treeview(columns=table_header, show="headings")
-        vsb = ttk.Scrollbar(orient="vertical",
-            command=self.tree.yview)
-        hsb = ttk.Scrollbar(orient="horizontal",
-            command=self.tree.xview)
-        self.tree.configure(yscrollcommand=vsb.set,
-            xscrollcommand=hsb.set)
+        vsb = ttk.Scrollbar(orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
         self.tree.grid(column=0, row=0, sticky='nsew', in_=self.tab, padx=5, pady=5)
         vsb.grid(column=1, row=0, sticky='ns', in_=self.tab)
         hsb.grid(column=0, row=1, sticky='ew', in_=self.tab)
         self.tab.grid_columnconfigure(0, weight=1)
         self.tab.grid_rowconfigure(0, weight=1)
+        timeLable = ttk.Label(self.tab, textvariable=self.updateTime, width=400)
+        timeLable.grid(column=0,row=2, sticky='n', in_=self.tab, padx=5, pady=5)
 
     def _read_log(self):
-        files = [f for f in os.listdir(self.path) if re.match('.*.log', f)]
+#         files = [f for f in os.listdir(self.path) if re.match('.*.log', f)]
+
+        files = [f for f in os.listdir(self.path)]
          
         for f in files:
             p = os.path.join(self.path, f)
-            try:
-                with open(p, 'r') as logFile:
-                    for line in logFile:
-                        if any(s in line for s in self.watchList):
-                            self.recordFinding(ntpath.basename(p), line)
-            except IOError, err:
-                    print("Cannot open file '%s'." % p.name)
+            if(os.path.isfile(p)):
+#                 print ("try to open: " + p)
+                try:
+                    with open(p, 'r') as logFile:
+                        for line in logFile:
+                            if any(s in line for s in self.watchList):
+                                self.recordFinding(ntpath.basename(p), line)
+                except IOError, err:
+                        print (err)
+                        print("Cannot open file" + p )
          
     def recordFinding(self, fileName, line):
         match = ''
@@ -80,7 +89,9 @@ class LogParser(threading.Thread):
         self.caught_list.append(row)
     
 #     def displayData(self):
-#         if(self.autoRefresh.get()==0):
+#         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#         self.updateTime.set('Log updated at: ' + now)
+#         if(self.autoRefresh==0):
 #             print "No auto refresh"
 #             self._read_log()
 #             self._build_tree()
@@ -88,7 +99,7 @@ class LogParser(threading.Thread):
 #             print "Auto Refreshing..."
 #             self._read_log()
 #             self._build_tree()
-#             self.tab.after(2000, self.displayData())
+#             self.tree.after(10000, self.displayData())
 
     def _build_tree(self):
         for col in table_header:
