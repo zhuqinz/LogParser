@@ -13,9 +13,6 @@ except ImportError:  # Python 3
     import tkinter.ttk as ttk
 
 class MultiColumnBox(object):
-    '''
-    Table using ttk
-    '''
 
     def __init__(self, parent, header):
         self.tree = None
@@ -23,7 +20,6 @@ class MultiColumnBox(object):
         self.header = header
         
         self._setup_widgets()
-#         self.build_tree()
         
     def _setup_widgets(self):
         container = ttk.Frame(self.parent)

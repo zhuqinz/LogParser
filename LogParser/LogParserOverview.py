@@ -8,13 +8,14 @@ LogParserOverview is used to
 Author: Zhuqin
 '''
 import datetime
+from multiprocessing import freeze_support
 import multiprocessing
-import ntpath
 import os
-import time
 import tkFileDialog
+
+import LogParser
 import MultiColumnBox
-import LogParser_2
+
 
 # import LogParser2
 try:
@@ -25,19 +26,23 @@ except ImportError:  # Python 3
 #     import tkinter.ttk as ttk
 
 table_header = ['Folder name', 'total files', 'error found']
-REFRESH_TIMER = 5000
+REFRESH_TIMER = 2000
 
 class LogParserOverview2 (object):
 
     def __init__(self, master, title):
         self.master = master
         self.title = title
+        
+        # Configuration fields
         self.baseDir = StringVar()
         self.watchListName = StringVar()
-        self.updateTime = StringVar() 
-        self.watchList = []
+        self.updateTime = StringVar()
         self.autoRefresh = IntVar()
+        
+        # Multiprocessing
         self.jobs = []
+        self.watchList = multiprocessing.Manager().list([])
         self.records = multiprocessing.Manager().list([])
         
         self.OnInit()
@@ -45,8 +50,8 @@ class LogParserOverview2 (object):
     def OnInit(self):
         # Create Main Window
         self.master.wm_title(self.title)
-        self.master.geometry('1200x700')
-        self.master.resizable(0, 1)
+        self.master.geometry('800x600')
+        self.master.resizable(0, 0)
         
         # ===Configuration frame for user to select files===
         configFrame = LabelFrame(self.master, text='Configuration ', height='300')
@@ -128,130 +133,47 @@ class LogParserOverview2 (object):
         sys.exit()
    
     def stopAll(self):
-        self.running = False
+        
         for job in self.jobs:
             job.terminate()
             job.join()
+
         self.jobs = []
-    
-#     def parseLogs(self):
-#                 
-#         # Get directory resultList
-#         targetList = [""] + [name for name in os.listdir(self.baseDir.get())
-#             if os.path.isdir(os.path.join(self.baseDir.get(), name))]
-#         targetList = [os.path.join(self.baseDir.get(), basename) for basename in targetList]
-#         
-#         for path in targetList:
-# #             p = multiprocessing.Process(target=Log, args=(self.watchList,path))
-# #             p.start()
-# #             pass
-#             logTab = LogParser.LogParser(path=path, watchList=self.watchList, tabControl=self.tabControl, autoRefresh=self.autoRefresh.get())
-#             self.jobs.append(logTab)
-#             logTab.start()    
-    
+#         while len(self.jobs) > 0:
+#             self.jobs = [job for job in self.jobs if job.is_alive()]
+#             time.sleep(1)
+        
     def startAll(self):
-         
-        # Get directory resultList
+        
         targetList = [""] + [name for name in os.listdir(self.baseDir.get())
             if os.path.isdir(os.path.join(self.baseDir.get(), name))]
         targetList = [os.path.join(self.baseDir.get(), basename) for basename in targetList]
          
         for path in targetList:
-            p = LogParser_2.LogParser_2(path=path, watchList=self.watchList, records = self.records)
+            p = LogParser.LogParser(path=path, watchList=self.watchList, records=self.records)
             self.jobs.append(p)
+            p.daemon = True
             p.start()
              
         print('Jobs started')
     
     def displayResult(self):
         
-        print('Refreshing...')
-        
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.updateTime.set('Log parsing started at: ' + now)
          
         if self.autoRefresh.get() == 0:
-#             pass
             self.resultList.build_tree(self.records) 
         else:
-            for item in self.records:
-                print('Received in tree: ', item)
-            
             self.resultList.build_tree(self.records) 
-            self.resultFrame.after(3000, self.displayResult)        
-            
+            self.resultFrame.after(REFRESH_TIMER, self.displayResult)        
     
-#     def refresh(self):
-#         print('refreshed')
-#         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         self.updateTime.set('Log parsing started at: ' + now)
-        
-#         self.resultList.build_tree(self.records)
-         
-#         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         self.updateTime.set('Log parsing started at: ' + now)
-#         
-#         if self.autoRefresh.get() == 0:
-#             self.parseLogs()
-#         else:
-#             self.parseLogs()
-#             self.resultFrame.after(2000, self.startAll)        
-        
     def cleanResult(self):
-        # Wait all threads finish
-        for i in self.jobs:
-            i.terminate()
-            i.join()
-        
-        self.jobs = []
-#         
-#         if self.autoRefresh.get() == 0:
-#             self.parseLogs(tabControl)
-#         else:
-#             self.parseLogs(tabControl)
-#             resultFrame.after(5000, self.startParse)
-#             
-#     def parseLogs(self, tabControl):  
-#         
-#         # Get directory resultList
-#         dirList = [""] + [name for name in os.listdir(self.baseDir.get())
-#             if os.path.isdir(os.path.join(self.baseDir.get(), name))]
-#         targetList = [path for path in dirList if not self.findTargetDir(path) == None]
-#         targetList = [os.path.join(self.baseDir.get(), basename) for basename in targetList]
-#                 
-#         # Create tabs for each directories
-#         self.jobs = []
-#         for path in targetList:
-#             tab = self.createTab(tabControl, path)
-#             p = _LogParser.LogParserProcess(path, self.watchList, tab)
-#             self.jobs.append(p)
-#             p.start()
-#         
-#         for i in self.jobs:
-#             i.join()
-#     
-#     def createTab(self, tabControl, path):
-#         tab = ttk.Frame(tabControl)
-#         tabName = ntpath.basename(path)
-#         tabControl.add(tab, text=tabName)
-#         tabControl.pack(expand=1, fill=BOTH)
-#         return tab
-    
-#     def findTargetDir(self, path):
-#         fullPath = os.path.join(self.baseDir.get(), path)
-#         files = [f for f in os.listdir(fullPath) if re.match('.*.log', f)]
-#         if files == []:
-#             return None
-#         else:
-#             return path   
-
-# def createNewTab(tabControl):
-    
-# def Log(watchList, path):    
-#     listBox = LogParser.LogParser(watchList, path)
+        self.stopAll()
 
 
 if __name__ == '__main__':
+    freeze_support()
     top = Tk()
     LogParserOverview2(top, title='Log Parser Tool v1.00')
     top.mainloop()
