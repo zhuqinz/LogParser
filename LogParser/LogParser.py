@@ -101,21 +101,19 @@ class LogParser(multiprocessing.Process):
                     csv_out.writerow(row)
             errorLogFile.close()
 
-    def get_file_lines(self):
+    def countFileLines(self):
+        count = 0
         try:
-            with open(self.errorLogFileName, 'r') as f:
-                for i, l in enumerate(f):
-                    pass
-            f.close()
-            return i + 1
+            for line in open(self.errorLogFileName).xreadlines(  ): count += 1
+            return count
         except IOError, err:
                 print (err)
-                print("Cannot open file" + f)
+                print("Cannot open file" + self.errorLogFileName)
                 return 0
         
     def update_result(self):
         
-        count = self.get_file_lines()
+        count = self.countFileLines()
         result = (self.parserName, self.totalFiles, count)
         
         # Find filename in the table

@@ -28,7 +28,7 @@ except ImportError:  # Python 3
 table_header = ['Folder name', 'total files', 'error found']
 REFRESH_TIMER = 2000
 
-class LogParserOverview2 (object):
+class LogParserOverview (object):
 
     def __init__(self, master, title):
         self.master = master
@@ -175,6 +175,6 @@ class LogParserOverview2 (object):
 if __name__ == '__main__':
     freeze_support()
     top = Tk()
-    LogParserOverview2(top, title='Log Parser Tool v1.00')
+    LogParserOverview(top, title='Log Parser Tool v1.00')
     top.mainloop()
     
