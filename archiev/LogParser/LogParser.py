@@ -16,7 +16,7 @@ SLEEP_TIME = 2
 
 class LogParser(multiprocessing.Process):
     '''
-    Log parser process to screen the log, and save the screened log in error.list file
+    Log parser process to screen the log, and save the screened log in _error.csv file
     '''
 
     def __init__(self, path, watchList, records):
