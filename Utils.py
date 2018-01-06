@@ -16,11 +16,12 @@ class MultiColumnBox(object):
         Provide multiple cloumnBox
     '''
 
-    def __init__(self, parent, header, columnWidth):
+    def __init__(self, parent, header, columnWidth, doubleClickCb):
         self.tree = None
         self.parent = parent
         self.header = header
         self.columnWidth = columnWidth
+        self.doubleClickCb = doubleClickCb
         
         self._setup_widgets()
         
@@ -60,6 +61,15 @@ class MultiColumnBox(object):
 #                     self.tree.column(self.header[ix], width=col_w)
         
         self.tree.update()
+        
+        self.tree.bind("<Double-1>", self.OnDoubleClick)
+    
+    def OnDoubleClick(self,event):
+        item = self.tree.selection()[0]
+        print("you clicked on", self.tree.item(item,"values"))
+        
+        self.doubleClickCb(self.tree.item(item,"values"))
+        
         
 class ConfigureFile(ConfigParser):
     '''

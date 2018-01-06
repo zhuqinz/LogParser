@@ -43,6 +43,7 @@ class LogParserOverview (object):
         
         # Multiprocessing
         self.jobs = []
+        self.exit_event = multiprocessing.Manager().Value('i',0)
         self.records = multiprocessing.Manager().list([])
         
         self.setup_widget()
@@ -84,7 +85,7 @@ class LogParserOverview (object):
         tabLogs = ttk.Frame(self.tabControl)
         self.tabControl.add(tabLogs, text='Logs')      
         self.tabControl.pack(expand=1, fill="both")
-        self.resultList = MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width)
+        self.logListTable = MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width, doubleClickCb = self.OnDoubleClickLogList)
                 
         # Tab WatchList
         tabKeywordList = ttk.Frame(self.tabControl)
@@ -135,21 +136,21 @@ class LogParserOverview (object):
         sys.exit()
     
     def stopAll(self):
+        self.exit_event.value = 1
         for job in self.jobs:
-            job.terminate()
             job.join()
-
         self.jobs = []
-    
         print ("All jobs stopped.")
+        
     def startAll(self):
         
+        self.exit_event.value = 0
         targetList = [name for name in os.listdir(self.baseDir.get())
                       if os.path.isdir(os.path.join(self.baseDir.get(), name))]
 
         for basename in targetList:
             path = os.path.join(self.baseDir.get(), basename)
-            job = LogMonitor(path=path, records=self.records)
+            job = LogMonitor(path=path, records=self.records, exitEvent=self.exit_event)
             self.jobs.append(job)
             job.daemon = True
             job.start()
@@ -158,10 +159,19 @@ class LogParserOverview (object):
     def refreshResult(self):
         
         if (self.tabControl.tab(self.tabControl.select(), "text") == 'Logs'):
-            self.resultList.build_tree(self.records)
+            self.logListTable.build_tree(self.records)
         
         self.logMonitorFrame.after(UPDATE_TIMER,self.refreshResult)
                
+    def OnDoubleClickLogList(self, selectedItem):
+        id = selectedItem[0]
+        if(id!=''):
+            try:
+                os.startfile(os.path.join(self.baseDir.get(),id))
+            except IOError, err:
+                print (err)
+                print("Cannot open file" + os.path.join(self.baseDir,id))
+             
     # ================ Watch List Frame Event ======================
     def loadWatchList(self):
         self.watchListBox.delete(0, END)

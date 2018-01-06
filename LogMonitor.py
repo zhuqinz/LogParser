@@ -16,22 +16,25 @@ class LogMonitor(multiprocessing.Process):
     '''
     Update the info for the files under given path
     '''
-    def __init__(self, path, records):
+    def __init__(self, path, records, exitEvent):
         multiprocessing.Process.__init__(self)
         self.path = path
         self.records = records
+        self.exit_event = exitEvent
         
         self.OnInit()
         
         print("Start job: "+ self.Id)
     
     def run(self):
-        while(True):
+        while(self.exit_event.value == 0):
             self.totalErrorFiles = 0
             
             self.read_logs()
             self.update_record()
             time.sleep(REFRESH_TIMER)
+        
+        print (self.Id , " doing cleanup and leaving ...")
         
     def OnInit(self):
         self.Id = ntpath.basename(self.path)
