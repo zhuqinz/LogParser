@@ -1,4 +1,5 @@
 from itertools import count
+from wx.lib import itemspicker
 try:
     from Tkinter import *
     import tkFont
@@ -22,6 +23,8 @@ class MultiColumnBox(object):
         self.header = header
         self.columnWidth = columnWidth
         self.doubleClickCb = doubleClickCb
+        self.sortedColumn = 0
+        self.selected = []
         
         self._setup_widgets()
         
@@ -39,13 +42,13 @@ class MultiColumnBox(object):
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
         
-    def build_tree(self, content=[]):
+    def build_tree(self, content=[], selection = None):
         
         self.tree.delete(*self.tree.get_children())
         
         for ix, col in enumerate(self.header):
             self.tree.heading(col, text=col.title(),
-                command=lambda c=col: sortby(self.tree, c, 0))
+                command=lambda c=col: self.sortby(c, 0))
             col_w = self.columnWidth[ix]
             self.tree.column(self.header[ix], width=col_w,anchor=E)
             # adjust the column's width to the header string
@@ -61,8 +64,28 @@ class MultiColumnBox(object):
 #                     self.tree.column(self.header[ix], width=col_w)
         
         self.tree.update()
-        
         self.tree.bind("<Double-1>", self.OnDoubleClick)
+        self.tree.bind("<<TreeviewSelect>>", self.OnSelect)
+        self.sortby(self.sortedColumn,0)
+        self.preservePreSelect()
+    
+    def sortby(self, col, descending):
+        """sort tree contents when a column header is clicked on"""
+        self.sortedColumn = col
+        
+        # grab values to sort
+        data = [(self.tree.set(child, col), child) \
+            for child in self.tree.get_children('')]
+        
+        # if the data to be sorted is numeric change to float
+        # data =  change_numeric(data)
+        # now sort the data in place
+        data.sort(reverse=descending)
+        for ix, item in enumerate(data):
+            self.tree.move(item[1], '', ix)
+        # switch the heading so it will sort in the opposite direction
+        self.tree.heading(col, command=lambda col=col: self.sortby(col, \
+            int(not descending)))       
     
     def OnDoubleClick(self,event):
         item = self.tree.selection()[0]
@@ -70,6 +93,26 @@ class MultiColumnBox(object):
         
         self.doubleClickCb(self.tree.item(item,"values"))
         
+    def OnSelect(self,event):
+        items = self.tree.selection()
+        if len(items) >0 :
+            self.selected =[]
+            for item in items:
+                self.selected.append(self.tree.item(item,"values")[0])
+    
+    def preservePreSelect(self):
+        if len(self.selected) > 0:
+            selection = [line for line in self.tree.get_children() 
+                             if self.tree.item(line)['values'][0] == self.selected[0]]
+#             selection =[]
+#             for id in self.selected:
+                
+#                 for line in self.tree.get_children():
+#                     if self.tree.item(line)['values'][0] == id:
+#                         selection.append(line)
+            
+            if len(selection)>0:
+                self.tree.selection_set(selection[0])
         
 class ConfigureFile(ConfigParser):
     '''
@@ -110,22 +153,6 @@ class ConfigureFile(ConfigParser):
             print (err)
             print("Cannot open file" + self.path)
         
-    
-def sortby(tree, col, descending):
-    """sort tree contents when a column header is clicked on"""
-    # grab values to sort
-    data = [(tree.set(child, col), child) \
-        for child in tree.get_children('')]
-    # if the data to be sorted is numeric change to float
-    # data =  change_numeric(data)
-    # now sort the data in place
-    data.sort(reverse=descending)
-    for ix, item in enumerate(data):
-        tree.move(item[1], '', ix)
-    # switch the heading so it will sort in the opposite direction
-    tree.heading(col, command=lambda col=col: sortby(tree, col, \
-        int(not descending)))    
-    
 def countFileLines(path):
     count = 0
     try:
