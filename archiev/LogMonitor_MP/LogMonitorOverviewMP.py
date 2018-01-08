@@ -8,14 +8,13 @@ Created on 2018-01-06
 @author: Zhuqin
 '''
 
-from datetime import datetime
 from multiprocessing import freeze_support
 import multiprocessing
-import ntpath
 import os
-import time
 import tkFileDialog
-import Utils
+
+from LogMonitorProcess import LogMonitorProcess
+from Utils import *
 
 
 try:
@@ -29,10 +28,9 @@ log_table_header = ['Folder name', 'total files', 'error found', 'Last updated']
 log_table_col_width = [140, 100, 100, 300]
 
 confPath = os.path.join(os.path.join(os.getcwd(), 'conf'), 'setup.ini')
-CONF = Utils.ConfigureFile(confPath)
+CONF = ConfigureFile(confPath)
 # confDir = "C:\\Users\\zhuqinz\\Desktop\\logMonitor\\conf"
 UPDATE_TIMER = 2000
-ERROR_LOG_PATTERN = '.*-error.*.log'
 
 
 class LogParserOverviewMP (object):
@@ -48,10 +46,9 @@ class LogParserOverviewMP (object):
         self.sortByCol = 0
         
         # Multiprocessing
-#         self.jobs = []
+        self.jobs = []
         self.exit_event = multiprocessing.Manager().Value('i', 0)
         self.records = multiprocessing.Manager().list([])
-        self.scanJob = None
         
         self.setup_widget()
         self.loadInitData()
@@ -92,18 +89,18 @@ class LogParserOverviewMP (object):
         tabLogs = ttk.Frame(self.tabControl)
         self.tabControl.add(tabLogs, text='Logs')      
         self.tabControl.pack(expand=1, fill="both")
-        self.logListTable = Utils.MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width, doubleClickCb=self.OnDoubleClickLogList)
+        self.logListTable = MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width, doubleClickCb=self.OnDoubleClickLogList)
                 
         # Tab WatchList
         tabKeywordList = ttk.Frame(self.tabControl)
         self.tabControl.add(tabKeywordList, text='SysLog Conf')      
         self.tabControl.pack(expand=1, fill="both")
         # Watch List Box
-        watchListBoxFrame = Frame(tabKeywordList, width=500)
+        watchListBoxFrame = Frame(tabKeywordList, width=700)
         watchListBoxFrame.pack(side=LEFT, fill=BOTH)
         s = Scrollbar(watchListBoxFrame)
         s.pack(side=RIGHT, fill=Y)
-        self.watchListBox = Listbox(watchListBoxFrame, width=60, selectmode=EXTENDED)
+        self.watchListBox = Listbox(watchListBoxFrame, width=100, selectmode=EXTENDED)
         self.watchListBox.pack(side=LEFT, fill=BOTH, padx=5, pady=5, ipadx=5, ipady=5)
         s.config(command=self.watchListBox.yview)
         self.watchListBox.config(yscrollcommand=s.set)
@@ -120,7 +117,7 @@ class LogParserOverviewMP (object):
         watchListDel_btn.grid(row=2, column=2, columnspan=2, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
     def loadInitData(self):
-        self.syslogConf = Utils.ConfigureFile(path=os.path.join(CONF.get('SysLog', 'SYSLOG_CONF_DIR'), 'syslog.properties'))
+        self.syslogConf = ConfigureFile(path=os.path.join(CONF.get('SysLog', 'SYSLOG_CONF_DIR'), 'syslog.properties'))
         self.loadWatchList()
 
     # ============ Configure Frame Event ===========================
@@ -134,57 +131,33 @@ class LogParserOverviewMP (object):
             
     # ============ Control Frame Event =============================
     def onClickStart(self):
-        self.stopScan()
-        self.startScan()
+        self.stopAll()
+        self.startAll()
         self.refreshResult()
-#         self.stopAll()
-#         self.startAll()
-#         self.refreshResult()
     
     def onClickQuit(self):
-#         self.stopAll()
+        self.stopAll()
         sys.exit()
+    
+    def stopAll(self):
+        self.exit_event.value = 1
+        for job in self.jobs:
+            job.join()
+        self.jobs = []
+        print ("All jobs stopped.")
         
-    def startScan(self):
+    def startAll(self):
         
         self.exit_event.value = 0
-        
-        # Initial table
-        folderList = [name for name in os.listdir(self.baseDir.get())
-                          if os.path.isdir(os.path.join(self.baseDir.get(), name))]
-        for f in folderList:
-            self.records.append((f,0,0,0))
-        
-        self.scanJob = multiprocessing.Process(target=scanLogFolder, args=(self.baseDir.get(), self.exit_event, self.records))
-        self.scanJob.daemon = True
-        self.scanJob.start()
-        
-    def stopScan(self):
-        self.exit_event.value = 1
-        if self.scanJob != None:
-            self.scanJob.join()
-        print ("Scan stoped.")
-        
-        
-#     def stopAll(self):
-#         self.exit_event.value = 1
-#         for job in self.jobs:
-#             job.join()
-#         self.jobs = []
-#         print ("All jobs stopped.")
-#         
-#     def startAll(self):
-#         
-#         self.exit_event.value = 0
-#         targetList = [name for name in os.listdir(self.baseDir.get())
-#                       if os.path.isdir(os.path.join(self.baseDir.get(), name))]
-# 
-#         for basename in targetList:
-#             path = os.path.join(self.baseDir.get(), basename)
-#             job = LogMonitorProcess(path=path, records=self.records, exitEvent=self.exit_event)
-#             self.jobs.append(job)
-#             job.daemon = True
-#             job.start()
+        targetList = [name for name in os.listdir(self.baseDir.get())
+                      if os.path.isdir(os.path.join(self.baseDir.get(), name))]
+
+        for basename in targetList:
+            path = os.path.join(self.baseDir.get(), basename)
+            job = LogMonitorProcess(path=path, records=self.records, exitEvent=self.exit_event)
+            self.jobs.append(job)
+            job.daemon = True
+            job.start()
             
     # ================ Log Table Frame ============================
     def refreshResult(self):
@@ -239,53 +212,6 @@ class LogParserOverviewMP (object):
         self.syslogConf.set(section='top', option='ERROR_KEYWORD', value=watchListStr)
         self.syslogConf.updateConf()
 
-
-def scanLogFolder(path, exit_event, records):
-
-    targetList = []
-    for idx, item in enumerate(records):
-        subFolderPath = os.path.join(path, item[0])
-        target = TargetFolder(subFolderPath, idx, records)
-        targetList.append(target)
-    
-    while exit_event.value== 0:
-        print "entered"
-        for target in targetList:
-            if (exit_event.value == 0):
-                target.update()
-            else:
-                break
-        time.sleep(3)
-
-class TargetFolder(object):
-
-    def __init__(self, path, idx, records):
-        self.idx = idx
-        self.path = path
-        self.records = records
-        self.lastUpdateTime = 0
-        self.totalErrors = 0
-        self.Id = ntpath.basename(self.path)
-    
-    def update(self):
-        self.read_logs()
-        self.update_record()
-    
-    def read_logs(self):
-        totalErrorLogFiles = [basename for basename in os.listdir(self.path)
-                      if(os.path.isfile(os.path.join(self.path, basename))) and re.match(ERROR_LOG_PATTERN, basename)]
-        self.totalErrorFiles = len(totalErrorLogFiles)
-        
-        for f in totalErrorLogFiles:
-            path = os.path.join(self.path, f)
-            if os.path.getmtime(path) > self.lastUpdateTime:
-                self.lastUpdateTime = os.path.getmtime(path)
-                self.totalErrors += Utils.countFileLines(path)
-
-    def update_record(self):
-        record = (self.Id, self.totalErrorFiles, self.totalErrors, datetime.fromtimestamp(self.lastUpdateTime).strftime("%Y-%m-%d %H:%M:%S"))
-#         Utils.updateRowById(self.records, self.Id, record)    
-        self.records[self.idx] = record
 
 if __name__ == '__main__':
     freeze_support()

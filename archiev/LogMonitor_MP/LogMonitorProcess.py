@@ -12,7 +12,7 @@ ERROR_LOG_PATTERN = '.*-error.*.log'
 # e.g.172.24.201.114_1515108631327-error_20180106172345.log is matched.
 # e.g. 172.24.201.114_1515108631327-error.log is not matched.
 
-class LogMonitor(multiprocessing.Process):
+class LogMonitorProcess(multiprocessing.Process):
     '''
     Update the info for the files under given path
     '''
