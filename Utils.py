@@ -1,5 +1,3 @@
-from itertools import count
-from wx.lib import itemspicker
 try:
     from Tkinter import *
     import tkFont
@@ -12,6 +10,7 @@ except ImportError:  # Python 3
 from ConfigParser import ConfigParser
 from StringIO import StringIO 
 
+
 class MultiColumnBox(object):
     '''
         Provide multiple cloumnBox
@@ -23,7 +22,8 @@ class MultiColumnBox(object):
         self.header = header
         self.columnWidth = columnWidth
         self.doubleClickCb = doubleClickCb
-        self.sortedColumn = 0
+        self.sortedColumn = self.header[0]
+        self.sortByDescending = 0
         self.selected = []
         
         self._setup_widgets()
@@ -42,15 +42,16 @@ class MultiColumnBox(object):
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
         
-    def build_tree(self, content=[], selection = None):
+    def build_tree(self, content=[]):
         
         self.tree.delete(*self.tree.get_children())
+        self.content = content
         
         for ix, col in enumerate(self.header):
             self.tree.heading(col, text=col.title(),
                 command=lambda c=col: self.sortby(c, 0))
             col_w = self.columnWidth[ix]
-            self.tree.column(self.header[ix], width=col_w,anchor=E)
+            self.tree.column(self.header[ix], width=col_w, anchor=E)
             # adjust the column's width to the header string
 #             self.tree.column(col,
 #                 width=tkFont.Font().measure(col.title()) + 20)
@@ -66,62 +67,67 @@ class MultiColumnBox(object):
         self.tree.update()
         self.tree.bind("<Double-1>", self.OnDoubleClick)
         self.tree.bind("<<TreeviewSelect>>", self.OnSelect)
-        self.sortby(self.sortedColumn,0)
+        self.sortby(self.sortedColumn, self.sortByDescending)
         self.preservePreSelect()
     
     def sortby(self, col, descending):
         """sort tree contents when a column header is clicked on"""
         self.sortedColumn = col
-        
+                
         # grab values to sort
         data = [(self.tree.set(child, col), child) \
             for child in self.tree.get_children('')]
         
-        # if the data to be sorted is numeric change to float
-        # data =  change_numeric(data)
-        # now sort the data in place
-        data.sort(reverse=descending)
+        if self.colIsNumber(col):
+            data.sort(key=lambda t: int(t[0]), reverse=descending)
+        else:
+            data.sort(reverse=descending)
+            
         for ix, item in enumerate(data):
             self.tree.move(item[1], '', ix)
         # switch the heading so it will sort in the opposite direction
         self.tree.heading(col, command=lambda col=col: self.sortby(col, \
             int(not descending)))       
+        
+        self.sortByDescending = descending
     
-    def OnDoubleClick(self,event):
+    def colIsNumber (self, col):
+        if len(self.content) > 0:
+            return isinstance(self.content[0][self.header.index(col)], int)
+        else:
+            return False
+    
+    def OnDoubleClick(self, event):
         item = self.tree.selection()[0]
-        print("you clicked on", self.tree.item(item,"values"))
+        print("you clicked on", self.tree.item(item, "values"))
         
-        self.doubleClickCb(self.tree.item(item,"values"))
+        self.doubleClickCb(self.tree.item(item, "values"))
         
-    def OnSelect(self,event):
+    def OnSelect(self, event):
         items = self.tree.selection()
-        if len(items) >0 :
-            self.selected =[]
+        if len(items) > 0 :
+            self.selected = []
             for item in items:
-                self.selected.append(self.tree.item(item,"values")[0])
+                self.selected.append(self.tree.item(item, "values")[0])
     
     def preservePreSelect(self):
         if len(self.selected) > 0:
             selection = [line for line in self.tree.get_children() 
                              if self.tree.item(line)['values'][0] == self.selected[0]]
-#             selection =[]
-#             for id in self.selected:
-                
-#                 for line in self.tree.get_children():
-#                     if self.tree.item(line)['values'][0] == id:
-#                         selection.append(line)
             
-            if len(selection)>0:
+            if len(selection) > 0:
                 self.tree.selection_set(selection[0])
+
         
 class ConfigureFile(ConfigParser):
     '''
         - Read configuration from properties file
         - Update configuration to the properties file
     '''
+
     def __init__(self, path, withSection=False):
         ConfigParser.__init__(self)
-        self.optionxform=str
+        self.optionxform = str
         
         self.path = path
         self.withSection = withSection
@@ -152,20 +158,22 @@ class ConfigureFile(ConfigParser):
         except IOError, err:
             print (err)
             print("Cannot open file" + self.path)
+
         
 def countFileLines(path):
     count = 0
     try:
         with open(path, 'r') as f:
             for l in f:
-                count +=1
+                count += 1
         return count
     except IOError, err:
         print(err)
-        print("Cannot open file: "+ path)
+        print("Cannot open file: " + path)
         return 0
 
-def updateRowById(records,Id,content):  
+
+def updateRowById(records, Id, content):  
     '''
         Search the list of tuples by the first element in tuple,
         if found, update the tuple with content
@@ -180,6 +188,5 @@ def updateRowById(records,Id,content):
     
     if not found:
         records.append(content)
-        
     
         

@@ -13,8 +13,8 @@ import multiprocessing
 import os
 import tkFileDialog
 
-from Utils import *
 from LogMonitor import LogMonitor
+from Utils import *
 
 
 try:
@@ -25,9 +25,13 @@ except ImportError:  # Python 3
     import tkinter.ttk as ttk    
 
 log_table_header = ['Folder name', 'total files', 'error found', 'Last updated']
-log_table_col_width =[140,100,100,300]
-confDir = "C:\\Users\\AA\\Desktop\\logmonitor\\conf"
+log_table_col_width = [140, 100, 100, 300]
+
+confPath = os.path.join(os.path.join(os.getcwd(), 'conf'), 'setup.ini')
+CONF = ConfigureFile(confPath)
+# confDir = "C:\\Users\\zhuqinz\\Desktop\\logMonitor\\conf"
 UPDATE_TIMER = 2000
+
 
 class LogParserOverview (object):
 
@@ -43,12 +47,12 @@ class LogParserOverview (object):
         
         # Multiprocessing
         self.jobs = []
-        self.exit_event = multiprocessing.Manager().Value('i',0)
+        self.exit_event = multiprocessing.Manager().Value('i', 0)
         self.records = multiprocessing.Manager().list([])
         
         self.setup_widget()
         self.loadInitData()
-
+    
     def setup_widget(self):
         # Create Main Window
         self.master.wm_title(self.title)
@@ -85,19 +89,19 @@ class LogParserOverview (object):
         tabLogs = ttk.Frame(self.tabControl)
         self.tabControl.add(tabLogs, text='Logs')      
         self.tabControl.pack(expand=1, fill="both")
-        self.logListTable = MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width, doubleClickCb = self.OnDoubleClickLogList)
+        self.logListTable = MultiColumnBox(parent=tabLogs, header=log_table_header, columnWidth=log_table_col_width, doubleClickCb=self.OnDoubleClickLogList)
                 
         # Tab WatchList
         tabKeywordList = ttk.Frame(self.tabControl)
         self.tabControl.add(tabKeywordList, text='SysLog Conf')      
         self.tabControl.pack(expand=1, fill="both")
         # Watch List Box
-        watchListBoxFrame = Frame(tabKeywordList, width=500)
-        watchListBoxFrame.pack(side=LEFT)
+        watchListBoxFrame = Frame(tabKeywordList, width=700)
+        watchListBoxFrame.pack(side=LEFT, fill=BOTH)
         s = Scrollbar(watchListBoxFrame)
         s.pack(side=RIGHT, fill=Y)
-        self.watchListBox = Listbox(watchListBoxFrame, width=60, selectmode=EXTENDED)
-        self.watchListBox.pack(side=LEFT, fill=Y, padx=5, pady=5, ipadx=5, ipady=5)
+        self.watchListBox = Listbox(watchListBoxFrame, width=100, selectmode=EXTENDED)
+        self.watchListBox.pack(side=LEFT, fill=BOTH, padx=5, pady=5, ipadx=5, ipady=5)
         s.config(command=self.watchListBox.yview)
         self.watchListBox.config(yscrollcommand=s.set)
         # Sys log conf Control buttons
@@ -113,7 +117,7 @@ class LogParserOverview (object):
         watchListDel_btn.grid(row=2, column=2, columnspan=2, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
     def loadInitData(self):
-        self.syslogConf = ConfigureFile(path=os.path.join(confDir, 'syslog.properties'))
+        self.syslogConf = ConfigureFile(path=os.path.join(CONF.get('SysLog', 'SYSLOG_CONF_DIR'), 'syslog.properties'))
         self.loadWatchList()
 
     # ============ Configure Frame Event ===========================
@@ -161,25 +165,30 @@ class LogParserOverview (object):
         if (self.tabControl.tab(self.tabControl.select(), "text") == 'Logs'):
             self.logListTable.build_tree(self.records)
         
-        self.logMonitorFrame.after(UPDATE_TIMER,self.refreshResult)
+        self.logMonitorFrame.after(UPDATE_TIMER, self.refreshResult)
                
     def OnDoubleClickLogList(self, selectedItem):
         id = selectedItem[0]
-        if(id!=''):
+        if(id != ''):
             try:
-                os.startfile(os.path.join(self.baseDir.get(),id))
+                os.startfile(os.path.join(self.baseDir.get(), id))
             except IOError, err:
                 print (err)
-                print("Cannot open file" + os.path.join(self.baseDir,id))
+                print("Cannot open file" + os.path.join(self.baseDir, id))
              
     # ================ Watch List Frame Event ======================
     def loadWatchList(self):
         self.watchListBox.delete(0, END)
         # Read from conf
-        watchListStr = self.syslogConf.get('top', 'ERROR_KEYWORD')
-        watchList = watchListStr.split(':')
+        try: 
+            watchListStr = self.syslogConf.get('top', 'ERROR_KEYWORD')
+            watchList = watchListStr.split(':')
+        except Exception  as err:
+            print (err)
+            watchList = ['Rsyslog path is not found: ' + CONF.get('SysLog', 'SYSLOG_CONF_DIR')]
+            
         for item in watchList:
-            self.watchListBox.insert(END, item)
+                self.watchListBox.insert(END, item)
             
     def onClickAdd(self):
         text = self.item_txt.get()
@@ -206,6 +215,7 @@ class LogParserOverview (object):
 
 if __name__ == '__main__':
     freeze_support()
+    
     top = Tk()
     LogParserOverview(top, title='Log Monitor v1.00')
     top.mainloop()
