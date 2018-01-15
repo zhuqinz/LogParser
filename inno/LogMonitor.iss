@@ -10,14 +10,14 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{D93978C0-BCB5-476D-97CD-6C6719C11055}
+AppId={{16128B6D-E8FF-4B86-AC76-9981EED673D8}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={pf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=LogMonitorSetUp
+OutputBaseFilename=LogMonitor
 Compression=lzma
 SolidCompression=yes
 

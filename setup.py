@@ -33,14 +33,14 @@ class Target(object):
 # the setup call at the end of this file. So, I put all the big lists
 # here and I wrap them using the textwrap module.
 
-# mfcdir = '.\\Microsoft.VC90.MFC'
-# mfcfiles = [os.path.join(mfcdir, i) for i in ["mfc90.dll", "mfc90u.dll", "mfcm90.dll", "mfcm90u.dll", "Microsoft.VC90.MFC.manifest"]]
-# 
-# crtdir = '.\\Microsoft.VC90.CRT'
-# crtfiles = [os.path.join(crtdir, i) for i in ['msvcr90.dll', 'Microsoft.VC90.CRT.manifest']]
-# 
-# data_files = [('Microsoft.VC90.CRT', crtfiles),
-#               ('Microsoft.VC90.MFC', mfcfiles)]
+mfcdir = '.\\Microsoft.VC90.MFC'
+mfcfiles = [os.path.join(mfcdir, i) for i in ["mfc90.dll", "mfc90u.dll", "mfcm90.dll", "mfcm90u.dll", "Microsoft.VC90.MFC.manifest"]]
+ 
+crtdir = '.\\Microsoft.VC90.CRT'
+crtfiles = [os.path.join(crtdir, i) for i in ['msvcr90.dll', 'Microsoft.VC90.CRT.manifest']]
+ 
+data_files = [('Microsoft.VC90.CRT', crtfiles),
+              ('Microsoft.VC90.MFC', mfcfiles)]
               #('.', ['.\\cps_dte.xrc'])]
 
 # includes = ['win32gui', 'win32ui', 'win32con']
@@ -95,7 +95,7 @@ setup(
 
     # No UPX or Inno Setup
 
-#     data_files = data_files,
+    data_files = data_files,
 
     options = {"py2exe": {"compressed": 2,
                           "optimize": 2,

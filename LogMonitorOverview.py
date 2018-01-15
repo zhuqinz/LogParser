@@ -32,7 +32,7 @@ confPath = os.path.join(os.path.join(os.getcwd(), 'conf'), 'setup.ini')
 CONF = Utils.ConfigureFile(confPath)
 # confDir = "C:\\Users\\zhuqinz\\Desktop\\logMonitor\\conf"
 UPDATE_TIMER = 2000
-ERROR_LOG_PATTERN = '.*-error.*.log'
+# ERROR_LOG_PATTERN = '.*-error.*.log'
 
 
 class LogParserOverviewMP (object):
@@ -48,7 +48,6 @@ class LogParserOverviewMP (object):
         self.sortByCol = 0
         
         # Multiprocessing
-#         self.jobs = []
         self.exit_event = multiprocessing.Manager().Value('i', 0)
         self.records = multiprocessing.Manager().list([])
         self.scanJob = None
@@ -76,8 +75,8 @@ class LogParserOverviewMP (object):
         # ===Control frame===
         controlFrame = LabelFrame(self.master, text='Control ')
         controlFrame.grid(row=1, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
-        includeCurrentLog_ck = Checkbutton(controlFrame, text='Include current log', variable=self.includeCurrentLog)
-        includeCurrentLog_ck.grid(row=0, column=0, sticky=W , padx=15, pady=2)
+#         includeCurrentLog_ck = Checkbutton(controlFrame, text='Include current log', variable=self.includeCurrentLog)
+#         includeCurrentLog_ck.grid(row=0, column=0, sticky=W , padx=15, pady=2)
         start_btn = Button(controlFrame, text='Start/Restart', command=self.onClickStart, width=10)
         start_btn.grid(row=0, column=1, padx=150, pady=2)
         stop_btn = Button(controlFrame, text='Quit', command=self.onClickQuit, width=10)
@@ -137,18 +136,16 @@ class LogParserOverviewMP (object):
         self.stopScan()
         self.startScan()
         self.refreshResult()
-#         self.stopAll()
-#         self.startAll()
-#         self.refreshResult()
     
     def onClickQuit(self):
-#         self.stopAll()
+        self.stopScan()
         sys.exit()
         
     def startScan(self):
         
         self.exit_event.value = 0
         
+        del self.records[:]
         # Initial table
         folderList = [name for name in os.listdir(self.baseDir.get())
                           if os.path.isdir(os.path.join(self.baseDir.get(), name))]
@@ -164,27 +161,6 @@ class LogParserOverviewMP (object):
         if self.scanJob != None:
             self.scanJob.join()
         print ("Scan stoped.")
-        
-        
-#     def stopAll(self):
-#         self.exit_event.value = 1
-#         for job in self.jobs:
-#             job.join()
-#         self.jobs = []
-#         print ("All jobs stopped.")
-#         
-#     def startAll(self):
-#         
-#         self.exit_event.value = 0
-#         targetList = [name for name in os.listdir(self.baseDir.get())
-#                       if os.path.isdir(os.path.join(self.baseDir.get(), name))]
-# 
-#         for basename in targetList:
-#             path = os.path.join(self.baseDir.get(), basename)
-#             job = LogMonitorProcess(path=path, records=self.records, exitEvent=self.exit_event)
-#             self.jobs.append(job)
-#             job.daemon = True
-#             job.start()
             
     # ================ Log Table Frame ============================
     def refreshResult(self):
@@ -273,7 +249,7 @@ class TargetFolder(object):
     
     def read_logs(self):
         totalErrorLogFiles = [basename for basename in os.listdir(self.path)
-                      if(os.path.isfile(os.path.join(self.path, basename))) and re.match(ERROR_LOG_PATTERN, basename)]
+                      if(os.path.isfile(os.path.join(self.path, basename))) and re.match(CONF.get('SysLog','ERROR_LOG_PATTERN'), basename)]
         self.totalErrorFiles = len(totalErrorLogFiles)
         
         for f in totalErrorLogFiles:
@@ -284,7 +260,6 @@ class TargetFolder(object):
 
     def update_record(self):
         record = (self.Id, self.totalErrorFiles, self.totalErrors, datetime.fromtimestamp(self.lastUpdateTime).strftime("%Y-%m-%d %H:%M:%S"))
-#         Utils.updateRowById(self.records, self.Id, record)    
         self.records[self.idx] = record
 
 if __name__ == '__main__':
